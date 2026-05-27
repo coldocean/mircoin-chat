@@ -38,7 +38,8 @@ export type WSClientMessage =
   | { type: "set_superadmin"; nickname: string }
   | { type: "remove_superadmin"; nickname: string }
   | { type: "hideme"; value: boolean }
-  | { type: "aboutme"; bio: string };
+  | { type: "aboutme"; bio: string }
+  | { type: "serverinfo"; text: string };
 
 export type WSServerMessage =
   | { type: "welcome"; nickname: string; motd: string[]; serverInfo: { name: string; version: string; users: number; channels: number } }

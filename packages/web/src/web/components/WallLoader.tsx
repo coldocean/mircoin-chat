@@ -353,7 +353,7 @@ export function WallLoader({ onComplete, theme }: WallLoaderProps) {
       ctx.fillStyle = "rgba(160,200,240,0.8)";
       ctx.shadowColor = "rgba(60,170,255,0.5)";
       ctx.shadowBlur = 10;
-      ctx.fillText("Free for all (created by deemah)", W / 2, barY - 30);
+      ctx.fillText("Free for all", W / 2, barY - 30);
       ctx.shadowBlur = 0;
       ctx.shadowColor = "transparent";
 

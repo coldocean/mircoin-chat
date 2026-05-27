@@ -265,6 +265,13 @@ export function parseCommand(input: string): ParsedCommand {
     case "clearbio":
       return { wsMessage: { type: "aboutme", bio: "" } };
 
+    case "serverinfo":
+      {
+        const infoText = args.join(" ").trim();
+        if (!infoText) return { error: "Usage: /serverinfo <new MOTD text> (use | to separate lines)" };
+        return { wsMessage: { type: "serverinfo", text: infoText } };
+      }
+
     case "clear":
     case "cls":
       return {
@@ -316,6 +323,7 @@ export function parseCommand(input: string): ParsedCommand {
             "***   /setsuperadmin <nick>       - Promote to superadmin",
             "***   /removesuperadmin <nick>    - Demote superadmin",
             "***   /hideme true|false          - Hide/show your role badge",
+            "***   /serverinfo <text>          - Change server MOTD (owner)",
             "*** Other:",
             "***   /aboutme <bio>              - Set your bio (shown in /whois)",
             "***   /clearaboutme               - Clear your bio",

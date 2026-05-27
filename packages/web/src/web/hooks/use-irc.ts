@@ -14,6 +14,40 @@ let mountCount = 0; // Track mounts to handle StrictMode double-mount
 let savedNick: string | null = null;
 let savedPassword: string | null = null;
 
+// Session persistence helpers
+const SESSION_KEY = "mircoin_session";
+function saveSession() {
+  try {
+    const s = store.getState();
+    const data = {
+      nick: savedNick,
+      pass: savedPassword,
+      activeView: s.activeView,
+      activeChannel: s.activeChannel,
+      activePM: s.activePM,
+      channels: Array.from(s.channels.keys()),
+    };
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
+  } catch {}
+}
+function loadSession() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as {
+      nick: string | null;
+      pass: string | null;
+      activeView: "channel" | "pm" | "server";
+      activeChannel: string | null;
+      activePM: string | null;
+      channels: string[];
+    };
+  } catch { return null; }
+}
+function clearSession() {
+  try { sessionStorage.removeItem(SESSION_KEY); } catch {}
+}
+
 const PING_INTERVAL = 20_000;   // send ping every 20s
 const PONG_TIMEOUT = 10_000;    // expect pong within 10s
 const RECONNECT_BASE = 1_000;   // start at 1s
@@ -109,6 +143,7 @@ function handleServerMsg(msg: WSServerMessage) {
       if (msg.code === "WRONG_PASSWORD" || msg.code === "NOT_REGISTERED") {
         savedNick = null;
         savedPassword = null;
+        clearSession();
       }
       break;
 
@@ -131,7 +166,26 @@ function handleServerMsg(msg: WSServerMessage) {
         for (const [name] of prevChannels) {
           sendWs({ type: "join", channel: name });
         }
+      } else {
+        // If no channels in memory, try restoring from session (fresh page load)
+        const sess = loadSession();
+        if (sess && sess.channels && sess.channels.length > 0) {
+          store.addServerMessage("*** Restoring session...", "info");
+          for (const ch of sess.channels) {
+            sendWs({ type: "join", channel: ch });
+          }
+          // Restore active view after channels are joined (small delay for join responses)
+          setTimeout(() => {
+            if (sess.activeView === "channel" && sess.activeChannel) {
+              store.setActiveChannel(sess.activeChannel);
+            } else if (sess.activeView === "pm" && sess.activePM) {
+              store.openPMSession(sess.activePM);
+            }
+            saveSession();
+          }, 500);
+        }
       }
+      saveSession();
       break;
 
     case "nick_changed":
@@ -153,6 +207,7 @@ function handleServerMsg(msg: WSServerMessage) {
       if (msg.nickname === myNick) {
         store.addChannel(msg.channel, msg.users);
         store.addServerMessage(`*** You have joined ${msg.channel}`, "server");
+        saveSession();
       } else {
         store.addUserToChannel(msg.channel, msg.nickname);
         store.addChannelMessage(msg.channel, {
@@ -170,6 +225,7 @@ function handleServerMsg(msg: WSServerMessage) {
       if (msg.nickname === myNick2) {
         store.removeChannel(msg.channel);
         store.addServerMessage(`*** You have left ${msg.channel}${msg.reason ? ` (${msg.reason})` : ""}`, "server");
+        saveSession();
       } else {
         store.removeUserFromChannel(msg.channel, msg.nickname);
         store.addChannelMessage(msg.channel, {
@@ -357,6 +413,7 @@ function interceptAndSend(msg: WSClientMessage) {
   if (msg.type === "identify" || msg.type === "register") {
     savedNick = msg.nickname;
     savedPassword = msg.password;
+    saveSession();
   }
   sendWs(msg);
 }
@@ -449,6 +506,15 @@ export function useIRC() {
   useEffect(() => {
     mountCount++;
     
+    // Restore saved credentials from session (survives page refresh)
+    if (!savedNick && !savedPassword) {
+      const sess = loadSession();
+      if (sess?.nick && sess?.pass) {
+        savedNick = sess.nick;
+        savedPassword = sess.pass;
+      }
+    }
+
     // Only connect if we don't already have an active connection
     if (!wsInstance || wsInstance.readyState === WebSocket.CLOSED) {
       isIntentionalClose = false;
@@ -459,11 +525,14 @@ export function useIRC() {
     document.addEventListener("visibilitychange", handleVisibilityChange);
     // Listen for network online/offline
     window.addEventListener("online", handleOnline);
+    // Save session state before page unload (refresh/close)
+    window.addEventListener("beforeunload", saveSession);
 
     return () => {
       mountCount--;
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("online", handleOnline);
+      window.removeEventListener("beforeunload", saveSession);
       
       // Only actually disconnect if no more mounted instances (handles StrictMode)
       // In StrictMode, React unmounts then immediately remounts — 

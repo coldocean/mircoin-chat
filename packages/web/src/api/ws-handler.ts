@@ -21,9 +21,10 @@ const nickToWs = new Map<string, any>(); // nickname -> ws
 
 const OWNER_NICK = "deemah";
 
-const MOTD = [
+let MOTD = [
   "╔══════════════════════════════════════════════════════╗",
-  "║           Welcome to mIRCoin Chat (Free Chat)       ║",
+  "║    Welcome to mIRCoin chat free for all              ║",
+  "║              (created by deemah)                     ║",
   "║══════════════════════════════════════════════════════║",
   "║                                                      ║",
   "║  This is a free IRC-style chat service.              ║",
@@ -304,6 +305,10 @@ async function _handleMessage(ws: any, raw: string) {
 
     case "aboutme":
       await handleAboutMe(ws, user, msg.bio);
+      break;
+
+    case "serverinfo":
+      handleServerInfo(ws, user, msg.text);
       break;
 
     // PM relay messages - just forward to target
@@ -1018,6 +1023,26 @@ async function handleAboutMe(ws: any, user: ConnectedUser, bio: string) {
   } else {
     send(ws, { type: "info", message: "Bio cleared" });
   }
+}
+
+function handleServerInfo(ws: any, user: ConnectedUser, text: string) {
+  // Owner-only command to update the MOTD welcome text
+  if (!user.identified || user.nickname.toLowerCase() !== OWNER_NICK.toLowerCase()) {
+    send(ws, { type: "error", code: "NO_PERMISSION", message: "Only the server owner can change server info" });
+    return;
+  }
+  if (!text || !text.trim()) {
+    send(ws, { type: "error", code: "INVALID_PARAMS", message: "Usage: /serverinfo <new MOTD text>" });
+    return;
+  }
+  // Build new MOTD from the text (split by | for multiple lines, or single line)
+  const lines = text.split("|").map(l => l.trim()).filter(Boolean);
+  MOTD = [
+    "╔══════════════════════════════════════════════════════╗",
+    ...lines.map(l => `║  ${l.padEnd(52)}║`),
+    "╚══════════════════════════════════════════════════════╝",
+  ];
+  send(ws, { type: "info", message: "Server MOTD updated successfully" });
 }
 
 function handlePMRelay(ws: any, user: ConnectedUser, msg: WSClientMessage) {

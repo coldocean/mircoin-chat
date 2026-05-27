@@ -222,7 +222,7 @@ export function CommandInput() {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className="flex-1 bg-secondary/50 border border-border rounded px-3 py-1.5 text-[13px] font-mono outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors placeholder:text-muted-foreground input-stripe"
+          className="flex-1 bg-secondary/50 border border-border rounded px-3 py-1.5 text-[16px] font-mono outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors placeholder:text-muted-foreground input-stripe"
           autoFocus
           autoComplete="off"
           spellCheck={false}

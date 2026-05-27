@@ -44,6 +44,7 @@ export const COMMANDS: CommandDef[] = [
   { command: "removesuperadmin", aliases: ["rsa"], usage: "/removesuperadmin <nick>", description: "Demote superadmin", category: "admin" },
   // Other
   { command: "aboutme", aliases: ["bio"], usage: "/aboutme <bio text>", description: "Set your bio (shown in /whois)", category: "other" },
+  { command: "serverinfo", usage: "/serverinfo <text>", description: "Change server MOTD (owner only)", category: "admin" },
   { command: "clearaboutme", aliases: ["clearbio"], usage: "/clearaboutme", description: "Clear your bio", category: "other" },
   { command: "clear", aliases: ["cls"], usage: "/clear", description: "Clear current view", category: "other" },
   { command: "help", usage: "/help", description: "Show all commands", category: "other" },
