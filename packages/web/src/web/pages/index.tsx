@@ -56,8 +56,9 @@ export default function Index() {
             </button>
           )}
           <div className="flex items-center gap-1.5">
-            <span className="text-[14px] font-bold font-sans text-primary">mIRCoin</span>
-            <span className="text-[11px] text-muted-foreground font-sans">Chat</span>
+            <img src="/coin-icon-trimmed.png" alt="mIRCoin" className="w-6 h-6 object-contain drop-shadow-[0_0_4px_rgba(59,130,246,0.5)]" />
+            <span className="text-[15px] font-bold font-sans tracking-tight bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 bg-clip-text text-transparent">mIRCoin</span>
+            <span className="text-[11px] text-slate-400 font-sans">Chat</span>
           </div>
         </div>
 
