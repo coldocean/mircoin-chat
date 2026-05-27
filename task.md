@@ -1,27 +1,17 @@
-# mIRCoin Chat - Build Progress
+# Current Task
 
-## Done
-- [x] Database schema (users, channels, channel_messages, channel_users, channel_bans)
-- [x] WS types (client + server message types)
-- [x] WS handler (full IRC command handling, PM relay, roles, admin)
-- [x] Server.ts with WebSocket support (production)
-- [x] Vite WS dev plugin (dev mode WebSocket)
-- [x] Design system (design.md)
-- [x] CSS styles (dark/light themes, IRC colors, nick colors)
-- [x] Crypto utils (ECDH, AES-256-GCM, image compress)
-- [x] IRC store (zustand-like state management)
-- [x] IRC hook (WebSocket connection, message routing)
-- [x] Command parser (all mIRC commands)
-- [x] ChannelPanel component (left sidebar)
-- [x] UserPanel component (right sidebar)
-- [x] ChatArea component (center chat)
+## Password Issue
+- Hash verified: `noT1333Deemahseeq` -> `56c2c14...` matches DB
+- Server-side test via WS: identify works perfectly
+- Likely mobile autocorrect/smart punctuation issue on user's end
 
-## TODO
-- [ ] CommandInput component (bottom input bar)
-- [ ] ThemeToggle component
-- [ ] Main page layout (index.tsx)
-- [ ] App.tsx routing
-- [ ] API index.ts (basic routes)
-- [ ] Push DB schema
-- [ ] Test build
-- [ ] Fix any errors
+## Command Autocomplete Popup
+Build terminal-style autocomplete when typing `/`:
+- Shows filtered list of matching commands as user types
+- Displays command syntax + description
+- Click or arrow-key + Enter to select
+- Inserts command into input field
+- Dismiss on Escape or when not matching
+
+### Commands to include in autocomplete:
+All from commands.ts switch cases with their usage strings.

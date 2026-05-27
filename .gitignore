@@ -7,3 +7,5 @@ dist/
 *.sqlite
 .turso/
 .DS_Store
+.turbo/
+dist-electron/
