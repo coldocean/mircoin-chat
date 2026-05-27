@@ -34,7 +34,7 @@ export function UserPanel() {
 
   if (activeView === "pm") {
     return (
-      <div className="flex flex-col h-full bg-card border-l border-border">
+      <div className="flex flex-col h-full bg-card border-l border-border stripe-border-l panel-stripe">
         <div className="px-3 py-2 border-b border-border">
           <div className="text-[11px] font-sans font-semibold text-muted-foreground uppercase tracking-wider">
             Private Message
@@ -58,7 +58,7 @@ export function UserPanel() {
 
   if (activeView !== "channel" || !activeChannel) {
     return (
-      <div className="flex flex-col h-full bg-card border-l border-border">
+      <div className="flex flex-col h-full bg-card border-l border-border stripe-border-l panel-stripe">
         <div className="px-3 py-2 border-b border-border">
           <div className="text-[11px] font-sans font-semibold text-muted-foreground uppercase tracking-wider">
             Users
@@ -99,7 +99,7 @@ export function UserPanel() {
   const closeContext = () => setContextMenu(null);
 
   return (
-    <div className="flex flex-col h-full bg-card border-l border-border overflow-x-hidden" onClick={closeContext}>
+    <div className="flex flex-col h-full bg-card border-l border-border stripe-border-l panel-stripe overflow-x-hidden" onClick={closeContext}>
       <div className="px-3 py-2 border-b border-border">
         <div className="text-[11px] font-sans font-semibold text-muted-foreground uppercase tracking-wider">
           Users ({channel.users.length})

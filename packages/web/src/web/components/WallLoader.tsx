@@ -335,17 +335,35 @@ export function WallLoader({ onComplete, theme }: WallLoaderProps) {
         ctx.fillRect(barX + 3 + fillW - 45, barY - 30, 90, barH + 60);
       }
 
-      // "Loading..." text — neon glow
-      ctx.font = "500 18px 'Inter', sans-serif";
+      // Welcome title text — neon glow
+      ctx.font = "700 22px 'Inter', sans-serif";
       ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(210,240,255,0.98)";
+      ctx.shadowColor = "rgba(60,170,255,0.9)";
+      ctx.shadowBlur = 20;
+      ctx.fillText("Welcome to mIRCoin Chat", W / 2, barY - 55);
+      ctx.shadowBlur = 35;
+      ctx.shadowColor = "rgba(40,130,255,0.4)";
+      ctx.fillText("Welcome to mIRCoin Chat", W / 2, barY - 55);
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = "transparent";
+
+      // Subtitle
+      ctx.font = "400 14px 'Inter', sans-serif";
+      ctx.fillStyle = "rgba(160,200,240,0.8)";
+      ctx.shadowColor = "rgba(60,170,255,0.5)";
+      ctx.shadowBlur = 10;
+      ctx.fillText("Free for all (created by deemah)", W / 2, barY - 30);
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = "transparent";
+
+      // "Loading..." text — neon glow
+      ctx.font = "500 16px 'Inter', sans-serif";
+      ctx.textAlign = "left";
       ctx.fillStyle = "rgba(180,225,255,0.95)";
       ctx.shadowColor = "rgba(60,170,255,0.8)";
       ctx.shadowBlur = 16;
-      ctx.fillText("Loading...", W / 2 - 30, barY - 18);
-      // Double glow pass
-      ctx.shadowBlur = 30;
-      ctx.shadowColor = "rgba(40,130,255,0.4)";
-      ctx.fillText("Loading...", W / 2 - 30, barY - 18);
+      ctx.fillText("Loading...", W / 2 - barW / 2, barY + barH + 28);
       ctx.shadowBlur = 0;
       ctx.shadowColor = "transparent";
 
@@ -355,7 +373,7 @@ export function WallLoader({ onComplete, theme }: WallLoaderProps) {
       ctx.fillStyle = "rgba(210,240,255,0.98)";
       ctx.shadowColor = "rgba(60,170,255,0.8)";
       ctx.shadowBlur = 14;
-      ctx.fillText(`${Math.floor(pct)}%`, W / 2 + barW / 2, barY - 18);
+      ctx.fillText(`${Math.floor(pct)}%`, W / 2 + barW / 2, barY + barH + 28);
       ctx.shadowBlur = 0;
       ctx.shadowColor = "transparent";
     },

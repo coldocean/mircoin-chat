@@ -194,7 +194,7 @@ export function CommandInput() {
         visible={isPaletteVisible}
       />
 
-      <div className="flex items-center gap-2 px-3 py-2 border-t border-border bg-card/50 min-w-0">
+      <div className="flex items-center gap-2 px-3 py-2 border-t border-border stripe-border-t bg-card/50 min-w-0">
         {/* Photo button for PMs only */}
         {activeView === "pm" && activePM && (
           <>
@@ -222,7 +222,7 @@ export function CommandInput() {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className="flex-1 bg-secondary/50 border border-border rounded px-3 py-1.5 text-[13px] font-mono outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors placeholder:text-muted-foreground"
+          className="flex-1 bg-secondary/50 border border-border rounded px-3 py-1.5 text-[13px] font-mono outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors placeholder:text-muted-foreground input-stripe"
           autoFocus
           autoComplete="off"
           spellCheck={false}
@@ -230,7 +230,7 @@ export function CommandInput() {
 
         <button
           onClick={handleSubmit}
-          className="p-1.5 rounded bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
+          className="p-1.5 rounded bg-primary/10 hover:bg-primary/20 text-primary transition-colors send-btn-stripe"
           title="Send"
         >
           <Send size={16} />

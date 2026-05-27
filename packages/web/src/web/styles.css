@@ -159,13 +159,57 @@ html, body {
 
 /* Dark mode: make panels slightly translucent so damaged wall peeks through subtly */
 .dark .bg-card {
-  background-color: rgba(17, 23, 32, 0.93);
+  background-color: rgba(17, 23, 32, 0.95);
 }
 .dark .bg-card\/90 {
-  background-color: rgba(17, 23, 32, 0.92);
+  background-color: rgba(17, 23, 32, 0.94);
 }
 .dark .bg-card\/80 {
-  background-color: rgba(17, 23, 32, 0.90);
+  background-color: rgba(17, 23, 32, 0.92);
+}
+.dark .bg-card\/50 {
+  background-color: rgba(17, 23, 32, 0.94);
+}
+.dark .bg-background\/80 {
+  background-color: rgba(10, 14, 20, 0.88);
+}
+
+/* ─── White stripe borders for dark mode containers ─── */
+.dark .panel-stripe {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+.dark .stripe-border-b {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.dark .stripe-border-t {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.dark .stripe-border-r {
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+.dark .stripe-border-l {
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Command input field — white stripe style */
+.dark .input-stripe {
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  background-color: rgba(22, 27, 34, 0.9) !important;
+}
+.dark .input-stripe:focus {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Send button — white square */
+.dark .send-btn-stripe {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+.dark .send-btn-stripe:hover {
+  background-color: rgba(255, 255, 255, 0.2) !important;
 }
 
 /* Panel resize handle */

@@ -193,7 +193,7 @@ export function ChatArea() {
   return (
     <div className="flex flex-col flex-1 min-h-0 min-w-0">
       {/* Topic bar */}
-      <div className="px-3 py-1.5 border-b border-border bg-card/50 shrink-0">
+      <div className="px-3 py-1.5 border-b border-border stripe-border-b bg-card/50 shrink-0">
         <div className="text-[13px] font-semibold font-sans truncate">{title}</div>
         {subtitle && (
           <div className="text-[11px] text-muted-foreground truncate">{subtitle}</div>

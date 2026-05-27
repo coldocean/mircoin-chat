@@ -17,7 +17,7 @@ export function ChannelPanel() {
   const [pmsOpen, setPmsOpen] = useState(true);
 
   return (
-    <div className="flex flex-col h-full bg-card border-r border-border select-none min-w-0 overflow-hidden">
+    <div className="flex flex-col h-full bg-card border-r border-border stripe-border-r select-none min-w-0 overflow-hidden panel-stripe">
       {/* Server header */}
       <div
         className={`flex items-center gap-2 px-3 py-2.5 border-b border-border cursor-pointer hover:bg-accent/50 transition-colors ${activeView === "server" ? "bg-accent" : ""}`}

@@ -87,7 +87,7 @@ export default function Index() {
         style={{ opacity: showApp ? 1 : 0, pointerEvents: showApp ? "auto" : "none" }}
       >
         {/* Top bar */}
-        <div className="flex items-center justify-between px-3 py-1.5 bg-card/90 dark:bg-card/80 backdrop-blur-sm border-b border-border shrink-0">
+        <div className="flex items-center justify-between px-3 py-1.5 bg-card/90 dark:bg-card/80 backdrop-blur-sm border-b border-border stripe-border-b shrink-0">
           <div className="flex items-center gap-2">
             {isMobile && (
               <button
