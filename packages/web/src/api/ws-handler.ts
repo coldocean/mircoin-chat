@@ -271,6 +271,10 @@ export async function handleMessage(ws: any, raw: string) {
       await handleHideMe(ws, user, msg.value);
       break;
 
+    case "aboutme":
+      await handleAboutMe(ws, user, msg.bio);
+      break;
+
     // PM relay messages - just forward to target
     case "pm_key_exchange":
     case "pm_key_accept":
@@ -804,6 +808,7 @@ async function handleWhois(ws: any, user: ConnectedUser, targetNick: string) {
     ip: isAdmin(user) ? (t.ip || undefined) : undefined,
     idle: targetUser ? Math.floor((Date.now() - targetUser.lastActivity.getTime()) / 1000) : -1,
     isOnline: !!targetUser,
+    bio: t.bio || undefined,
   };
 
   send(ws, { type: "whois_reply", nickname: targetNick, info });
@@ -965,6 +970,22 @@ async function handleHideMe(ws: any, user: ConnectedUser, value: boolean) {
       isOnline: nickToWs.has(cu.nickname),
     }));
     broadcastToChannel(ch, { type: "names_reply", channel: ch, users });
+  }
+}
+
+async function handleAboutMe(ws: any, user: ConnectedUser, bio: string) {
+  if (!user.identified) {
+    send(ws, { type: "error", code: "NOT_IDENTIFIED", message: "You must be identified to set a bio" });
+    return;
+  }
+
+  const trimmed = bio.slice(0, 100).trim();
+  await db.update(schema.users).set({ bio: trimmed || null }).where(eq(schema.users.nickname, user.nickname));
+
+  if (trimmed) {
+    send(ws, { type: "info", message: `Bio set: ${trimmed}` });
+  } else {
+    send(ws, { type: "info", message: "Bio cleared" });
   }
 }
 

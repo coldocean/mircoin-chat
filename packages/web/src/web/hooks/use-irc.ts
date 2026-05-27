@@ -273,6 +273,7 @@ function handleServerMsg(msg: WSServerMessage) {
       store.addServerMessage(`***   Channels: ${msg.info.channels.join(", ") || "None"}`, "server");
       store.addServerMessage(`***   Registered: ${new Date(msg.info.registeredAt).toLocaleString()}`, "server");
       store.addServerMessage(`***   Last seen: ${new Date(msg.info.lastSeen).toLocaleString()}`, "server");
+      if (msg.info.bio) store.addServerMessage(`***   Bio: ${msg.info.bio}`, "server");
       if (msg.info.ip) store.addServerMessage(`***   IP: ${msg.info.ip}`, "server");
       if (msg.info.idle >= 0) store.addServerMessage(`***   Idle: ${msg.info.idle}s`, "server");
       store.addServerMessage(`*** End of /WHOIS`, "server");

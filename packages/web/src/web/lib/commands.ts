@@ -253,6 +253,18 @@ export function parseCommand(input: string): ParsedCommand {
         return { wsMessage: { type: "hideme", value: val === "true" } };
       }
 
+    case "aboutme":
+    case "bio":
+      {
+        const bioText = args.join(" ").trim();
+        if (!bioText) return { error: "Usage: /aboutme <bio text> (max 100 chars)" };
+        return { wsMessage: { type: "aboutme", bio: bioText.slice(0, 100) } };
+      }
+
+    case "clearaboutme":
+    case "clearbio":
+      return { wsMessage: { type: "aboutme", bio: "" } };
+
     case "clear":
     case "cls":
       return {
@@ -305,6 +317,8 @@ export function parseCommand(input: string): ParsedCommand {
             "***   /removesuperadmin <nick>    - Demote superadmin",
             "***   /hideme true|false          - Hide/show your role badge",
             "*** Other:",
+            "***   /aboutme <bio>              - Set your bio (shown in /whois)",
+            "***   /clearaboutme               - Clear your bio",
             "***   /clear                      - Clear current view",
             "***   /help                       - Show this help",
           ];

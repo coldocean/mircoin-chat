@@ -11,6 +11,7 @@ export const users = sqliteTable("users", {
   banned: integer("banned", { mode: "boolean" }).notNull().default(false),
   banReason: text("ban_reason"),
   hiddenRole: integer("hidden_role", { mode: "boolean" }).notNull().default(false),
+  bio: text("bio"),
 });
 
 export const channels = sqliteTable("channels", {

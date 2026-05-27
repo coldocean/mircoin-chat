@@ -72,7 +72,7 @@ export default function Index() {
   }, [theme, showApp]);
 
   return (
-    <div className={`flex flex-col h-screen w-screen overflow-hidden ${theme}`}>
+    <div className={`flex flex-col h-[100dvh] w-full max-w-[100vw] overflow-hidden ${theme}`}>
       {/* Damaged wall background (permanent, dark mode only, after loading) */}
       {wallLoaded && <DamagedWallBackground theme={theme} />}
 
@@ -83,7 +83,7 @@ export default function Index() {
 
       {/* Main app - fades in after wall loading */}
       <div
-        className="relative z-10 flex flex-col h-screen w-screen overflow-hidden transition-opacity duration-700"
+        className="relative z-10 flex flex-col h-[100dvh] w-full max-w-[100vw] overflow-hidden transition-opacity duration-700"
         style={{ opacity: showApp ? 1 : 0, pointerEvents: showApp ? "auto" : "none" }}
       >
         {/* Top bar */}

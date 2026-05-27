@@ -22,20 +22,20 @@ function MessageLine({ msg, selfNick }: { msg: ChatMessage; selfNick: string }) 
   switch (msg.type) {
     case "message":
       return (
-        <div className={`flex gap-0 leading-[1.6] ${msg.isHistory ? "opacity-70" : ""}`}>
+        <div className={`flex gap-0 leading-[1.6] min-w-0 ${msg.isHistory ? "opacity-70" : ""}`}>
           <span className="msg-timestamp mr-2 shrink-0">[{time}]</span>
           <span className={`font-semibold mr-1 shrink-0 ${isSelf ? "nick-self" : nickColor(msg.nickname)}`}>
             &lt;{msg.nickname}&gt;
           </span>
-          <span className="break-all">{msg.message}</span>
+          <span className="break-all min-w-0" style={{ overflowWrap: "anywhere" }}>{msg.message}</span>
         </div>
       );
 
     case "action":
       return (
-        <div className="msg-action leading-[1.6]">
+        <div className="msg-action leading-[1.6] min-w-0" style={{ overflowWrap: "anywhere" }}>
           <span className="msg-timestamp mr-2">[{time}]</span>
-          <span>* {msg.nickname} {msg.message}</span>
+          <span className="break-all">* {msg.nickname} {msg.message}</span>
         </div>
       );
 
@@ -83,7 +83,7 @@ function MessageLine({ msg, selfNick }: { msg: ChatMessage; selfNick: string }) 
 
     case "server":
       return (
-        <div className="msg-server leading-[1.6]">
+        <div className="msg-server leading-[1.6] min-w-0 whitespace-pre-wrap" style={{ overflowWrap: "anywhere" }}>
           <span>{msg.message}</span>
         </div>
       );
@@ -106,18 +106,18 @@ function MessageLine({ msg, selfNick }: { msg: ChatMessage; selfNick: string }) 
 
     case "pm":
       return (
-        <div className="leading-[1.6]">
+        <div className="leading-[1.6] min-w-0">
           <span className="msg-timestamp mr-2">[{time}]</span>
           <span className={`font-semibold mr-1 ${isSelf ? "nick-self" : nickColor(msg.nickname)}`}>
             &lt;{msg.nickname}&gt;
           </span>
-          <span className="break-all">{msg.message}</span>
+          <span className="break-all min-w-0" style={{ overflowWrap: "anywhere" }}>{msg.message}</span>
         </div>
       );
 
     case "pm_photo":
       return (
-        <div className="leading-[1.6]">
+        <div className="leading-[1.6] min-w-0">
           <span className="msg-timestamp mr-2">[{time}]</span>
           <span className={`font-semibold mr-1 ${isSelf ? "nick-self" : nickColor(msg.nickname)}`}>
             &lt;{msg.nickname}&gt;
@@ -125,7 +125,7 @@ function MessageLine({ msg, selfNick }: { msg: ChatMessage; selfNick: string }) 
           <img
             src={`data:image/jpeg;base64,${msg.message}`}
             alt="photo"
-            className="mt-1 max-w-[300px] max-h-[200px] rounded border border-border"
+            className="mt-1 max-w-[min(300px,100%)] max-h-[200px] rounded border border-border"
           />
         </div>
       );
@@ -204,7 +204,7 @@ export function ChatArea() {
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-3 py-1 text-[13px] leading-relaxed bg-background/80 dark:bg-background/70"
+        className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-1 text-[13px] leading-relaxed bg-background/80 dark:bg-background/70"
       >
         {messages.map((msg) => (
           <MessageLine key={msg.id} msg={msg} selfNick={nickname} />

@@ -194,7 +194,7 @@ export function CommandInput() {
         visible={isPaletteVisible}
       />
 
-      <div className="flex items-center gap-2 px-3 py-2 border-t border-border bg-card/50">
+      <div className="flex items-center gap-2 px-3 py-2 border-t border-border bg-card/50 min-w-0">
         {/* Photo button for PMs only */}
         {activeView === "pm" && activePM && (
           <>

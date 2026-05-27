@@ -37,7 +37,8 @@ export type WSClientMessage =
   | { type: "server_unban"; nickname: string }
   | { type: "set_superadmin"; nickname: string }
   | { type: "remove_superadmin"; nickname: string }
-  | { type: "hideme"; value: boolean };
+  | { type: "hideme"; value: boolean }
+  | { type: "aboutme"; bio: string };
 
 export type WSServerMessage =
   | { type: "welcome"; nickname: string; motd: string[]; serverInfo: { name: string; version: string; users: number; channels: number } }
@@ -99,4 +100,5 @@ export interface WhoisInfo {
   ip?: string; // only for admins
   idle: number;
   isOnline: boolean;
+  bio?: string;
 }
