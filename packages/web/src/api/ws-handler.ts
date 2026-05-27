@@ -95,61 +95,92 @@ async function hasChannelPermission(user: ConnectedUser, channelName: string, re
 // --- Handlers ---
 
 export async function handleConnection(ws: any, ip: string) {
-  const tempNick = `Guest${Math.floor(Math.random() * 99999)}`;
-  const user: ConnectedUser = {
-    ws, nickname: tempNick, identified: false, role: "user", hiddenRole: false,
-    ip, connectedAt: new Date(), lastActivity: new Date(), channels: new Set(),
-  };
-  connectedUsers.set(ws, user);
-  nickToWs.set(tempNick, ws);
+  try {
+    const tempNick = `Guest${Math.floor(Math.random() * 99999)}`;
+    const user: ConnectedUser = {
+      ws, nickname: tempNick, identified: false, role: "user", hiddenRole: false,
+      ip, connectedAt: new Date(), lastActivity: new Date(), channels: new Set(),
+    };
+    connectedUsers.set(ws, user);
+    nickToWs.set(tempNick, ws);
 
-  const onlineCount = connectedUsers.size;
-  const channelCount = (await db.select({ count: sql<number>`count(*)` }).from(schema.channels))[0]?.count ?? 0;
+    const onlineCount = connectedUsers.size;
+    let channelCount = 0;
+    try {
+      channelCount = (await db.select({ count: sql<number>`count(*)` }).from(schema.channels))[0]?.count ?? 0;
+    } catch (dbErr) {
+      console.error("[DB] Failed to get channel count on connect:", (dbErr as Error).message);
+    }
 
-  send(ws, {
-    type: "connection_info",
-    ip: ip,
-    hostname: ip,
-    timestamp: new Date().toISOString(),
-  });
+    send(ws, {
+      type: "connection_info",
+      ip: ip,
+      hostname: ip,
+      timestamp: new Date().toISOString(),
+    });
 
-  send(ws, {
-    type: "welcome",
-    nickname: tempNick,
-    motd: MOTD,
-    serverInfo: {
-      name: "mIRCoin Chat",
-      version: "1.0.0",
-      users: onlineCount,
-      channels: channelCount as number,
-    },
-  });
+    send(ws, {
+      type: "welcome",
+      nickname: tempNick,
+      motd: MOTD,
+      serverInfo: {
+        name: "mIRCoin Chat",
+        version: "1.0.0",
+        users: onlineCount,
+        channels: channelCount as number,
+      },
+    });
+  } catch (err) {
+    console.error("[WS] handleConnection error:", (err as Error).message);
+  }
 }
 
 export async function handleDisconnect(ws: any) {
-  const user = connectedUsers.get(ws);
-  if (!user) return;
+  try {
+    const user = connectedUsers.get(ws);
+    if (!user) return;
 
-  // Part from all channels
-  for (const ch of user.channels) {
-    broadcastToChannel(ch, { type: "parted", channel: ch, nickname: user.nickname, reason: "Connection closed" }, ws);
-    await db.delete(schema.channelUsers).where(
-      and(eq(schema.channelUsers.channelName, ch), eq(schema.channelUsers.nickname, user.nickname))
-    );
+    // Part from all channels
+    for (const ch of user.channels) {
+      broadcastToChannel(ch, { type: "parted", channel: ch, nickname: user.nickname, reason: "Connection closed" }, ws);
+      try {
+        await db.delete(schema.channelUsers).where(
+          and(eq(schema.channelUsers.channelName, ch), eq(schema.channelUsers.nickname, user.nickname))
+        );
+      } catch (dbErr) {
+        console.error("[DB] Failed to remove channel user on disconnect:", (dbErr as Error).message);
+      }
+    }
+
+    // Notify PM partners
+    broadcast({ type: "user_offline", nickname: user.nickname }, ws);
+
+    if (user.identified) {
+      try {
+        await db.update(schema.users).set({ lastSeen: new Date() }).where(eq(schema.users.nickname, user.nickname));
+      } catch (dbErr) {
+        console.error("[DB] Failed to update lastSeen on disconnect:", (dbErr as Error).message);
+      }
+    }
+
+    nickToWs.delete(user.nickname);
+    connectedUsers.delete(ws);
+  } catch (err) {
+    console.error("[WS] handleDisconnect error:", (err as Error).message);
+    connectedUsers.delete(ws);
   }
-
-  // Notify PM partners
-  broadcast({ type: "user_offline", nickname: user.nickname }, ws);
-
-  if (user.identified) {
-    await db.update(schema.users).set({ lastSeen: new Date() }).where(eq(schema.users.nickname, user.nickname));
-  }
-
-  nickToWs.delete(user.nickname);
-  connectedUsers.delete(ws);
 }
 
 export async function handleMessage(ws: any, raw: string) {
+  try {
+    await _handleMessage(ws, raw);
+  } catch (err) {
+    console.error("[WS] handleMessage error:", (err as Error).message);
+    try { send(ws, { type: "error", code: "INTERNAL_ERROR", message: "Server error, please try again" }); } catch {}
+  }
+}
+
+async function _handleMessage(ws: any, raw: string) {
   const user = connectedUsers.get(ws);
   if (!user) return;
 
