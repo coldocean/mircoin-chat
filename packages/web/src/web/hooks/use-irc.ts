@@ -8,6 +8,7 @@ let pingInterval: ReturnType<typeof setInterval> | null = null;
 let pongTimeout: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempts = 0;
 let isIntentionalClose = false;
+let mountCount = 0; // Track mounts to handle StrictMode double-mount
 
 // Persist credentials for auto re-identify on reconnect
 let savedNick: string | null = null;
@@ -402,7 +403,6 @@ function connect() {
   };
 
   wsInstance.onerror = () => {
-    // onclose will fire after this, so just log
     store.addServerMessage("*** Connection error", "error");
   };
 }
@@ -445,13 +445,14 @@ function handleOnline() {
 }
 
 export function useIRC() {
-  const connectAttempted = useRef(false);
-
   useEffect(() => {
-    if (connectAttempted.current) return;
-    connectAttempted.current = true;
-
-    connect();
+    mountCount++;
+    
+    // Only connect if we don't already have an active connection
+    if (!wsInstance || wsInstance.readyState === WebSocket.CLOSED) {
+      isIntentionalClose = false;
+      connect();
+    }
 
     // Listen for tab visibility changes (mobile browsers suspend WS in background)
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -459,13 +460,23 @@ export function useIRC() {
     window.addEventListener("online", handleOnline);
 
     return () => {
-      isIntentionalClose = true;
-      clearTimers();
+      mountCount--;
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("online", handleOnline);
-      if (wsInstance) {
-        try { wsInstance.close(); } catch {}
-      }
+      
+      // Only actually disconnect if no more mounted instances (handles StrictMode)
+      // In StrictMode, React unmounts then immediately remounts — 
+      // use setTimeout to let the remount happen first
+      setTimeout(() => {
+        if (mountCount === 0) {
+          isIntentionalClose = true;
+          clearTimers();
+          if (wsInstance) {
+            try { wsInstance.close(); } catch {}
+            wsInstance = null;
+          }
+        }
+      }, 100);
     };
   }, []);
 
