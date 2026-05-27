@@ -42,6 +42,10 @@ const server = Bun.serve({
     });
   },
   websocket: {
+    idleTimeout: 120, // seconds — send pings before this
+    maxPayloadLength: 1024 * 1024, // 1MB
+    sendPingsAutomatically: true, // Bun sends WS-level pings to keep alive
+    perMessageDeflate: false,
     open(ws) {
       const ip = (ws.data as any)?.ip || "unknown";
       handleConnection(ws, ip);

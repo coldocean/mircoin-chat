@@ -2,6 +2,8 @@ import type { Plugin } from "vite";
 import { WebSocketServer, WebSocket } from "ws";
 import type { IncomingMessage } from "http";
 
+const PING_INTERVAL = 25_000; // Server-side ping every 25s to keep connections alive
+
 export default function wsDevPlugin(): Plugin {
   let wss: WebSocketServer | null = null;
   let wsHandler: any = null;
@@ -33,6 +35,19 @@ export default function wsDevPlugin(): Plugin {
 
           mod.handleConnection(wsWrapper, ip);
 
+          // Server-side ping to keep connection alive (prevents proxy/LB timeouts)
+          const pingTimer = setInterval(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.ping();
+            } else {
+              clearInterval(pingTimer);
+            }
+          }, PING_INTERVAL);
+
+          ws.on("pong", () => {
+            // Connection is alive — nothing to do, just resets the ws lib's internal timer
+          });
+
           ws.on("message", async (data: Buffer) => {
             try {
               const freshMod = await server.ssrLoadModule("/src/api/ws-handler.ts");
@@ -43,12 +58,18 @@ export default function wsDevPlugin(): Plugin {
           });
 
           ws.on("close", async () => {
+            clearInterval(pingTimer);
             try {
               const freshMod = await server.ssrLoadModule("/src/api/ws-handler.ts");
               freshMod.handleDisconnect(wsWrapper);
             } catch (err) {
               console.error("[ws-dev] close error:", err);
             }
+          });
+
+          ws.on("error", (err) => {
+            clearInterval(pingTimer);
+            console.error("[ws-dev] ws error:", err.message);
           });
         } catch (err) {
           console.error("[ws-dev] connection error:", err);

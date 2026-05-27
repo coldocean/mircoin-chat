@@ -4,6 +4,19 @@ import type { WSClientMessage, WSServerMessage } from "../../api/ws-types";
 
 let wsInstance: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let pingInterval: ReturnType<typeof setInterval> | null = null;
+let pongTimeout: ReturnType<typeof setTimeout> | null = null;
+let reconnectAttempts = 0;
+let isIntentionalClose = false;
+
+// Persist credentials for auto re-identify on reconnect
+let savedNick: string | null = null;
+let savedPassword: string | null = null;
+
+const PING_INTERVAL = 20_000;   // send ping every 20s
+const PONG_TIMEOUT = 10_000;    // expect pong within 10s
+const RECONNECT_BASE = 1_000;   // start at 1s
+const RECONNECT_MAX = 15_000;   // cap at 15s
 
 function getWsUrl() {
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -14,6 +27,40 @@ function sendWs(msg: WSClientMessage) {
   if (wsInstance?.readyState === WebSocket.OPEN) {
     wsInstance.send(JSON.stringify(msg));
   }
+}
+
+function clearTimers() {
+  if (pingInterval) { clearInterval(pingInterval); pingInterval = null; }
+  if (pongTimeout) { clearTimeout(pongTimeout); pongTimeout = null; }
+  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+}
+
+function startHeartbeat() {
+  // Clear any existing heartbeat
+  if (pingInterval) clearInterval(pingInterval);
+  if (pongTimeout) clearTimeout(pongTimeout);
+
+  pingInterval = setInterval(() => {
+    if (wsInstance?.readyState === WebSocket.OPEN) {
+      sendWs({ type: "ping" });
+
+      // If no pong within timeout, assume dead connection — force reconnect
+      pongTimeout = setTimeout(() => {
+        console.warn("[IRC] Pong timeout — forcing reconnect");
+        store.addServerMessage("*** Connection stale, reconnecting...", "error");
+        if (wsInstance) {
+          try { wsInstance.close(); } catch {}
+        }
+      }, PONG_TIMEOUT);
+    }
+  }, PING_INTERVAL);
+}
+
+function getReconnectDelay() {
+  // Exponential backoff: 1s, 2s, 4s, 8s, 15s cap
+  const delay = Math.min(RECONNECT_BASE * Math.pow(2, reconnectAttempts), RECONNECT_MAX);
+  // Add small jitter
+  return delay + Math.random() * 500;
 }
 
 function handleServerMsg(msg: WSServerMessage) {
@@ -41,15 +88,26 @@ function handleServerMsg(msg: WSServerMessage) {
       }
       store.addServerMessage("", "server");
       store.addServerMessage("*** End of /MOTD", "server");
-      store.addServerMessage("*** Use /register <nick> <password> to register, or /identify <nick> <password> to login", "info");
+
+      // Auto re-identify if we have saved credentials (reconnect scenario)
+      if (savedNick && savedPassword) {
+        store.addServerMessage("*** Auto-identifying...", "info");
+        sendWs({ type: "identify", nickname: savedNick, password: savedPassword });
+      } else {
+        store.addServerMessage("*** Use /register <nick> <password> to register, or /identify <nick> <password> to login", "info");
+      }
       break;
 
     case "error":
       store.addServerMessage(`*** Error [${msg.code}]: ${msg.message}`, "error");
-      // Also show in active channel/PM
       const s = store.getState();
       if (s.activeView === "channel" && s.activeChannel) {
         store.addChannelMessage(s.activeChannel, { id: genId(), nickname: "*", message: `Error: ${msg.message}`, type: "error", timestamp: ts });
+      }
+      // If identify fails on reconnect, clear saved creds
+      if (msg.code === "WRONG_PASSWORD" || msg.code === "NOT_REGISTERED") {
+        savedNick = null;
+        savedPassword = null;
       }
       break;
 
@@ -64,12 +122,20 @@ function handleServerMsg(msg: WSServerMessage) {
     case "identified":
       store.setIdentified(msg.nickname, msg.role);
       store.addServerMessage(`*** You are now identified as ${msg.nickname} (${msg.role})`, "server");
+
+      // Auto-rejoin channels we were in before disconnect
+      const prevChannels = store.getState().channels;
+      if (prevChannels.size > 0) {
+        store.addServerMessage("*** Rejoining channels...", "info");
+        for (const [name] of prevChannels) {
+          sendWs({ type: "join", channel: name });
+        }
+      }
       break;
 
     case "nick_changed":
       store.nickChanged(msg.oldNick, msg.newNick);
       store.addServerMessage(`*** ${msg.oldNick} is now known as ${msg.newNick}`, "server");
-      // Notify all channels this user is in
       for (const [name, ch] of store.getState().channels) {
         if (ch.users.find(u => u.nickname === msg.newNick || u.nickname === msg.oldNick)) {
           store.addChannelMessage(name, {
@@ -93,7 +159,6 @@ function handleServerMsg(msg: WSServerMessage) {
           message: `${msg.nickname} has joined ${msg.channel}`,
           type: "join", timestamp: ts,
         });
-        // Refresh user list
         if (msg.users) store.updateChannelUsers(msg.channel, msg.users);
       }
       break;
@@ -185,7 +250,6 @@ function handleServerMsg(msg: WSServerMessage) {
         message: `${msg.nickname} sets mode ${msg.mode}${msg.param ? ` ${msg.param}` : ""}`,
         type: "mode", timestamp: ts,
       });
-      // Refresh names
       sendWs({ type: "names", channel: msg.channel });
       break;
 
@@ -280,7 +344,103 @@ function handleServerMsg(msg: WSServerMessage) {
       break;
 
     case "pong":
+      // Clear pong timeout — connection is alive
+      if (pongTimeout) { clearTimeout(pongTimeout); pongTimeout = null; }
       break;
+  }
+}
+
+// Intercept identify/register to save credentials
+function interceptAndSend(msg: WSClientMessage) {
+  if (msg.type === "identify" || msg.type === "register") {
+    savedNick = msg.nickname;
+    savedPassword = msg.password;
+  }
+  sendWs(msg);
+}
+
+function connect() {
+  if (wsInstance?.readyState === WebSocket.OPEN || wsInstance?.readyState === WebSocket.CONNECTING) return;
+
+  isIntentionalClose = false;
+  store.addServerMessage("*** Connecting to server...", "server");
+
+  try {
+    wsInstance = new WebSocket(getWsUrl());
+  } catch (err) {
+    store.addServerMessage("*** Failed to create WebSocket connection", "error");
+    scheduleReconnect();
+    return;
+  }
+
+  wsInstance.onopen = () => {
+    store.setConnected(true);
+    reconnectAttempts = 0; // reset backoff on successful connect
+    clearTimers();
+    startHeartbeat();
+  };
+
+  wsInstance.onmessage = (event) => {
+    try {
+      const msg = JSON.parse(event.data) as WSServerMessage;
+      handleServerMsg(msg);
+    } catch {}
+  };
+
+  wsInstance.onclose = (event) => {
+    clearTimers();
+    store.setConnected(false);
+
+    if (isIntentionalClose) {
+      store.addServerMessage("*** Disconnected from server", "server");
+      return;
+    }
+
+    const reason = event.reason || "Connection lost";
+    store.addServerMessage(`*** Disconnected from server (${event.code}: ${reason})`, "error");
+    scheduleReconnect();
+  };
+
+  wsInstance.onerror = () => {
+    // onclose will fire after this, so just log
+    store.addServerMessage("*** Connection error", "error");
+  };
+}
+
+function scheduleReconnect() {
+  if (reconnectTimer) return; // already scheduled
+
+  const delay = getReconnectDelay();
+  reconnectAttempts++;
+
+  store.addServerMessage(`*** Reconnecting in ${Math.round(delay / 1000)}s (attempt ${reconnectAttempts})...`, "server");
+
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    connect();
+  }, delay);
+}
+
+// Handle page visibility — reconnect immediately when tab becomes visible
+function handleVisibilityChange() {
+  if (document.visibilityState === "visible") {
+    if (!wsInstance || wsInstance.readyState !== WebSocket.OPEN) {
+      // Cancel any pending reconnect timer and connect NOW
+      if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+      reconnectAttempts = 0;
+      store.addServerMessage("*** Tab active — reconnecting...", "server");
+      connect();
+    }
+  }
+}
+
+// Handle network events
+function handleOnline() {
+  if (!wsInstance || wsInstance.readyState !== WebSocket.OPEN) {
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    reconnectAttempts = 0;
+    store.addServerMessage("*** Network restored — reconnecting...", "server");
+    connect();
   }
 }
 
@@ -291,60 +451,30 @@ export function useIRC() {
     if (connectAttempted.current) return;
     connectAttempted.current = true;
 
-    function connect() {
-      if (wsInstance?.readyState === WebSocket.OPEN || wsInstance?.readyState === WebSocket.CONNECTING) return;
-
-      store.addServerMessage("*** Connecting to server...", "server");
-      wsInstance = new WebSocket(getWsUrl());
-
-      wsInstance.onopen = () => {
-        store.setConnected(true);
-        if (reconnectTimer) {
-          clearTimeout(reconnectTimer);
-          reconnectTimer = null;
-        }
-      };
-
-      wsInstance.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data) as WSServerMessage;
-          handleServerMsg(msg);
-        } catch {}
-      };
-
-      wsInstance.onclose = () => {
-        store.setConnected(false);
-        store.addServerMessage("*** Disconnected from server", "error");
-        // Reconnect after 3s
-        reconnectTimer = setTimeout(() => {
-          store.addServerMessage("*** Attempting to reconnect...", "server");
-          connect();
-        }, 3000);
-      };
-
-      wsInstance.onerror = () => {
-        store.addServerMessage("*** Connection error", "error");
-      };
-    }
-
     connect();
 
-    // Ping every 30s
-    const pingInterval = setInterval(() => {
-      sendWs({ type: "ping" });
-    }, 30000);
+    // Listen for tab visibility changes (mobile browsers suspend WS in background)
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    // Listen for network online/offline
+    window.addEventListener("online", handleOnline);
 
     return () => {
-      clearInterval(pingInterval);
-      if (reconnectTimer) clearTimeout(reconnectTimer);
+      isIntentionalClose = true;
+      clearTimers();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("online", handleOnline);
+      if (wsInstance) {
+        try { wsInstance.close(); } catch {}
+      }
     };
   }, []);
 
   const send = useCallback((msg: WSClientMessage) => {
-    sendWs(msg);
+    interceptAndSend(msg);
   }, []);
 
   return { send };
 }
 
-export { sendWs };
+// Export the intercepting version as sendWs so all callers get credential saving
+export { interceptAndSend as sendWs };
