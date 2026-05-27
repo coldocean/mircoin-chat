@@ -11,6 +11,7 @@ export function ChannelPanel() {
   const nickname = useIRCStore((s) => s.nickname);
   const connected = useIRCStore((s) => s.connected);
   const role = useIRCStore((s) => s.role);
+  const hiddenRole = useIRCStore((s) => s.hiddenRole);
 
   const [channelsOpen, setChannelsOpen] = useState(true);
   const [pmsOpen, setPmsOpen] = useState(true);
@@ -34,7 +35,7 @@ export function ChannelPanel() {
             {nickname && <span className="ml-1">as {nickname}</span>}
           </div>
         </div>
-        {(role === "owner" || role === "superadmin") && (
+        {(role === "owner" || role === "superadmin") && !hiddenRole && (
           <span className="text-[9px] px-1 py-0.5 rounded bg-primary/20 text-primary font-sans font-semibold uppercase">
             {role === "owner" ? "owner" : "SA"}
           </span>

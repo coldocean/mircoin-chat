@@ -9,6 +9,7 @@ interface ConnectedUser {
   nickname: string;
   identified: boolean;
   role: "owner" | "superadmin" | "user";
+  hiddenRole: boolean;
   ip: string;
   connectedAt: Date;
   lastActivity: Date;
@@ -96,7 +97,7 @@ async function hasChannelPermission(user: ConnectedUser, channelName: string, re
 export async function handleConnection(ws: any, ip: string) {
   const tempNick = `Guest${Math.floor(Math.random() * 99999)}`;
   const user: ConnectedUser = {
-    ws, nickname: tempNick, identified: false, role: "user",
+    ws, nickname: tempNick, identified: false, role: "user", hiddenRole: false,
     ip, connectedAt: new Date(), lastActivity: new Date(), channels: new Set(),
   };
   connectedUsers.set(ws, user);
@@ -266,6 +267,10 @@ export async function handleMessage(ws: any, raw: string) {
       await handleRemoveSuperadmin(ws, user, msg.nickname);
       break;
 
+    case "hideme":
+      await handleHideMe(ws, user, msg.value);
+      break;
+
     // PM relay messages - just forward to target
     case "pm_key_exchange":
     case "pm_key_accept":
@@ -323,7 +328,7 @@ async function handleRegister(ws: any, user: ConnectedUser, nickname: string, pa
   nickToWs.set(nickname, ws);
 
   send(ws, { type: "registered", nickname });
-  send(ws, { type: "identified", nickname, role });
+  send(ws, { type: "identified", nickname, role, hiddenRole: false });
 
   if (oldNick !== nickname) {
     broadcast({ type: "nick_changed", oldNick, newNick: nickname }, ws);
@@ -368,11 +373,12 @@ async function handleIdentify(ws: any, user: ConnectedUser, nickname: string, pa
   user.nickname = nickname;
   user.identified = true;
   user.role = dbUser.role as any;
+  user.hiddenRole = !!dbUser.hiddenRole;
   nickToWs.set(nickname, ws);
 
   await db.update(schema.users).set({ lastSeen: new Date(), ip: user.ip }).where(eq(schema.users.nickname, nickname));
 
-  send(ws, { type: "identified", nickname, role: dbUser.role });
+  send(ws, { type: "identified", nickname, role: dbUser.role, hiddenRole: !!dbUser.hiddenRole });
 
   if (oldNick !== nickname) {
     broadcast({ type: "nick_changed", oldNick, newNick: nickname }, ws);
@@ -786,9 +792,12 @@ async function handleWhois(ws: any, user: ConnectedUser, targetNick: string) {
 
   const chans = await db.select().from(schema.channelUsers).where(eq(schema.channelUsers.nickname, targetNick));
 
+  // If target has hidden role, show "user" unless the requester is admin
+  const visibleRole = (t.hiddenRole && !isAdmin(user)) ? "user" : t.role;
+
   const info: WhoisInfo = {
     nickname: t.nickname,
-    role: t.role,
+    role: visibleRole,
     channels: chans.map(c => c.channelName),
     registeredAt: t.registeredAt.toISOString(),
     lastSeen: t.lastSeen.toISOString(),
@@ -926,6 +935,37 @@ async function handleRemoveSuperadmin(ws: any, user: ConnectedUser, targetNick: 
   if (targetUser) targetUser.role = "user";
 
   send(ws, { type: "info", message: `${targetNick} is no longer a superadmin` });
+}
+
+async function handleHideMe(ws: any, user: ConnectedUser, value: boolean) {
+  if (!isAdmin(user)) {
+    send(ws, { type: "error", code: "NO_PERMISSION", message: "Owner/superadmin only" });
+    return;
+  }
+
+  if (!user.identified) {
+    send(ws, { type: "error", code: "NOT_IDENTIFIED", message: "You must be identified to use this command" });
+    return;
+  }
+
+  user.hiddenRole = value;
+  await db.update(schema.users).set({ hiddenRole: value }).where(eq(schema.users.nickname, user.nickname));
+
+  send(ws, { type: "info", message: value ? "Your role badge is now hidden from other users" : "Your role badge is now visible to all users" });
+
+  // Re-send identified so client updates its own badge
+  send(ws, { type: "identified", nickname: user.nickname, role: user.role, hiddenRole: value });
+
+  // Update names in all channels this user is in, so other users see the change
+  for (const ch of user.channels) {
+    const channelUsersDb = await db.select().from(schema.channelUsers).where(eq(schema.channelUsers.channelName, ch));
+    const users: ChannelUserInfo[] = channelUsersDb.map(cu => ({
+      nickname: cu.nickname,
+      role: cu.role as any,
+      isOnline: nickToWs.has(cu.nickname),
+    }));
+    broadcastToChannel(ch, { type: "names_reply", channel: ch, users });
+  }
 }
 
 function handlePMRelay(ws: any, user: ConnectedUser, msg: WSClientMessage) {

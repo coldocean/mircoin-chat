@@ -36,14 +36,15 @@ export type WSClientMessage =
   | { type: "server_ban"; nickname: string; reason?: string }
   | { type: "server_unban"; nickname: string }
   | { type: "set_superadmin"; nickname: string }
-  | { type: "remove_superadmin"; nickname: string };
+  | { type: "remove_superadmin"; nickname: string }
+  | { type: "hideme"; value: boolean };
 
 export type WSServerMessage =
   | { type: "welcome"; nickname: string; motd: string[]; serverInfo: { name: string; version: string; users: number; channels: number } }
   | { type: "error"; code: string; message: string }
   | { type: "info"; message: string }
   | { type: "registered"; nickname: string }
-  | { type: "identified"; nickname: string; role: string }
+  | { type: "identified"; nickname: string; role: string; hiddenRole?: boolean }
   | { type: "nick_changed"; oldNick: string; newNick: string }
   | { type: "joined"; channel: string; nickname: string; users: ChannelUserInfo[] }
   | { type: "parted"; channel: string; nickname: string; reason?: string }

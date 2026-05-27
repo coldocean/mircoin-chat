@@ -245,6 +245,14 @@ export function parseCommand(input: string): ParsedCommand {
       if (args.length < 1) return { error: "Usage: /removesuperadmin <nickname>" };
       return { wsMessage: { type: "remove_superadmin", nickname: args[0] } };
 
+    case "hideme":
+      {
+        if (args.length < 1) return { error: "Usage: /hideme true|false" };
+        const val = args[0].toLowerCase();
+        if (val !== "true" && val !== "false") return { error: "Usage: /hideme true|false" };
+        return { wsMessage: { type: "hideme", value: val === "true" } };
+      }
+
     case "clear":
     case "cls":
       return {
@@ -295,6 +303,7 @@ export function parseCommand(input: string): ParsedCommand {
             "***   /serverunban <nick>         - Remove server ban",
             "***   /setsuperadmin <nick>       - Promote to superadmin",
             "***   /removesuperadmin <nick>    - Demote superadmin",
+            "***   /hideme true|false          - Hide/show your role badge",
             "*** Other:",
             "***   /clear                      - Clear current view",
             "***   /help                       - Show this help",

@@ -121,8 +121,8 @@ function handleServerMsg(msg: WSServerMessage) {
       break;
 
     case "identified":
-      store.setIdentified(msg.nickname, msg.role);
-      store.addServerMessage(`*** You are now identified as ${msg.nickname} (${msg.role})`, "server");
+      store.setIdentified(msg.nickname, msg.role, msg.hiddenRole);
+      store.addServerMessage(`*** You are now identified as ${msg.nickname} (${msg.role})${msg.hiddenRole ? " [hidden]" : ""}`, "server");
 
       // Auto-rejoin channels we were in before disconnect
       const prevChannels = store.getState().channels;

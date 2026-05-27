@@ -33,6 +33,7 @@ export interface IRCState {
   identified: boolean;
   nickname: string;
   role: string;
+  hiddenRole: boolean;
   ip: string;
 
   // Channels
@@ -64,6 +65,7 @@ let state: IRCState = {
   identified: false,
   nickname: "",
   role: "user",
+  hiddenRole: false,
   ip: "",
   channels: new Map(),
   activeChannel: null,
@@ -107,10 +109,11 @@ export function setConnected(connected: boolean) {
   emit();
 }
 
-export function setIdentified(nickname: string, role: string) {
+export function setIdentified(nickname: string, role: string, hiddenRole?: boolean) {
   state.identified = true;
   state.nickname = nickname;
   state.role = role;
+  if (hiddenRole !== undefined) state.hiddenRole = hiddenRole;
   emit();
 }
 
