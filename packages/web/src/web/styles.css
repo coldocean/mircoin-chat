@@ -144,6 +144,17 @@
 .light .msg-notice { color: #9a6700; }
 .light .msg-timestamp { color: #656d76; }
 
+/* Dark mode: make panels slightly translucent so damaged wall peeks through subtly */
+.dark .bg-card {
+  background-color: rgba(17, 23, 32, 0.93);
+}
+.dark .bg-card\/90 {
+  background-color: rgba(17, 23, 32, 0.92);
+}
+.dark .bg-card\/80 {
+  background-color: rgba(17, 23, 32, 0.90);
+}
+
 /* Panel resize handle */
 .resize-handle {
   width: 3px;

@@ -204,7 +204,7 @@ export function ChatArea() {
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-3 py-1 text-[13px] leading-relaxed"
+        className="flex-1 overflow-y-auto px-3 py-1 text-[13px] leading-relaxed bg-background/80 dark:bg-background/70"
       >
         {messages.map((msg) => (
           <MessageLine key={msg.id} msg={msg} selfNick={nickname} />

@@ -5,7 +5,8 @@ import { ChatArea } from "../components/ChatArea";
 import { UserPanel } from "../components/UserPanel";
 import { CommandInput } from "../components/CommandInput";
 import { ThemeToggle } from "../components/ThemeToggle";
-import { useEffect, useState } from "react";
+import { WallLoader, DamagedWallBackground } from "../components/WallLoader";
+import { useEffect, useState, useCallback } from "react";
 import { Wifi, WifiOff, Menu, X } from "lucide-react";
 
 export default function Index() {
@@ -18,6 +19,26 @@ export default function Index() {
   const [showLeftPanel, setShowLeftPanel] = useState(true);
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Wall loader state
+  const [wallLoaded, setWallLoaded] = useState(false);
+  const [showApp, setShowApp] = useState(false);
+
+  // Check if we already loaded this session
+  useEffect(() => {
+    const loaded = sessionStorage.getItem("mircoin_wall_loaded");
+    if (loaded === "true") {
+      setWallLoaded(true);
+      setShowApp(true);
+    }
+  }, []);
+
+  const handleWallComplete = useCallback(() => {
+    sessionStorage.setItem("mircoin_wall_loaded", "true");
+    setWallLoaded(true);
+    // Small delay before showing app for smooth transition
+    setTimeout(() => setShowApp(true), 300);
+  }, []);
 
   useEffect(() => {
     const check = () => {
@@ -42,98 +63,120 @@ export default function Index() {
     document.documentElement.classList.toggle("light", theme === "light");
   }, [theme]);
 
+  // Light mode: skip loader entirely, show app immediately
+  useEffect(() => {
+    if (theme === "light" && !showApp) {
+      setWallLoaded(true);
+      setShowApp(true);
+    }
+  }, [theme, showApp]);
+
   return (
     <div className={`flex flex-col h-screen w-screen overflow-hidden ${theme}`}>
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-card border-b border-border shrink-0">
-        <div className="flex items-center gap-2">
-          {isMobile && (
-            <button
-              onClick={() => { setShowLeftPanel(!showLeftPanel); setShowRightPanel(false); }}
-              className="p-1 rounded hover:bg-accent transition-colors"
-            >
-              {showLeftPanel ? <X size={16} /> : <Menu size={16} />}
-            </button>
-          )}
-          <div className="flex items-center gap-1.5">
-            <img src="/coin-icon-trimmed.png" alt="mIRCoin" className="w-6 h-6 object-contain drop-shadow-[0_0_4px_rgba(59,130,246,0.5)]" />
-            <span className="text-[15px] font-bold font-sans tracking-tight bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 bg-clip-text text-transparent">mIRCoin</span>
-            <span className="text-[11px] text-slate-400 font-sans">Chat</span>
-          </div>
-        </div>
+      {/* Damaged wall background (permanent, dark mode only, after loading) */}
+      {wallLoaded && <DamagedWallBackground theme={theme} />}
 
-        <div className="flex items-center gap-3">
-          {/* Connection status */}
-          <div className="flex items-center gap-1.5 text-[11px] font-sans">
-            {connected ? (
-              <>
-                <Wifi size={12} className="text-green-500" />
-                <span className="text-muted-foreground hidden sm:inline">
-                  {nickname}
-                  {role !== "user" && (
-                    <span className={`ml-1 ${role === "owner" ? "text-yellow-500" : "text-red-400"}`}>
-                      [{role}]
-                    </span>
-                  )}
-                </span>
-              </>
-            ) : (
-              <>
-                <WifiOff size={12} className="text-destructive" />
-                <span className="text-destructive hidden sm:inline">Disconnected</span>
-              </>
+      {/* Wall loader (only on first visit, dark mode) */}
+      {!wallLoaded && theme === "dark" && (
+        <WallLoader onComplete={handleWallComplete} theme={theme} />
+      )}
+
+      {/* Main app - fades in after wall loading */}
+      <div
+        className="relative z-10 flex flex-col h-screen w-screen overflow-hidden transition-opacity duration-700"
+        style={{ opacity: showApp ? 1 : 0, pointerEvents: showApp ? "auto" : "none" }}
+      >
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-3 py-1.5 bg-card/90 dark:bg-card/80 backdrop-blur-sm border-b border-border shrink-0">
+          <div className="flex items-center gap-2">
+            {isMobile && (
+              <button
+                onClick={() => { setShowLeftPanel(!showLeftPanel); setShowRightPanel(false); }}
+                className="p-1 rounded hover:bg-accent transition-colors"
+              >
+                {showLeftPanel ? <X size={16} /> : <Menu size={16} />}
+              </button>
+            )}
+            <div className="flex items-center gap-1.5">
+              <img src="/coin-icon-trimmed.png" alt="mIRCoin" className="w-6 h-6 object-contain drop-shadow-[0_0_4px_rgba(59,130,246,0.5)]" />
+              <span className="text-[15px] font-bold font-sans tracking-tight bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 bg-clip-text text-transparent">mIRCoin</span>
+              <span className="text-[11px] text-slate-400 font-sans">Chat</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Connection status */}
+            <div className="flex items-center gap-1.5 text-[11px] font-sans">
+              {connected ? (
+                <>
+                  <Wifi size={12} className="text-green-500" />
+                  <span className="text-muted-foreground hidden sm:inline">
+                    {nickname}
+                    {role !== "user" && (
+                      <span className={`ml-1 ${role === "owner" ? "text-yellow-500" : "text-red-400"}`}>
+                        [{role}]
+                      </span>
+                    )}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <WifiOff size={12} className="text-destructive" />
+                  <span className="text-destructive hidden sm:inline">Disconnected</span>
+                </>
+              )}
+            </div>
+
+            {ip && (
+              <span className="text-[10px] text-muted-foreground font-mono hidden md:inline">
+                {ip}
+              </span>
+            )}
+
+            <ThemeToggle />
+
+            {isMobile && (
+              <button
+                onClick={() => { setShowRightPanel(!showRightPanel); setShowLeftPanel(false); }}
+                className="p-1 rounded hover:bg-accent transition-colors text-[11px] font-sans text-muted-foreground"
+              >
+                Users
+              </button>
             )}
           </div>
-
-          {ip && (
-            <span className="text-[10px] text-muted-foreground font-mono hidden md:inline">
-              {ip}
-            </span>
-          )}
-
-          <ThemeToggle />
-
-          {isMobile && (
-            <button
-              onClick={() => { setShowRightPanel(!showRightPanel); setShowLeftPanel(false); }}
-              className="p-1 rounded hover:bg-accent transition-colors text-[11px] font-sans text-muted-foreground"
-            >
-              Users
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Main content */}
-      <div className="flex flex-1 min-h-0 relative">
-        {/* Left panel - Channels */}
-        {showLeftPanel && (
-          <div className={`${isMobile ? "absolute inset-y-0 left-0 z-20 w-[240px] shadow-xl" : "w-[220px] shrink-0"}`}>
-            <ChannelPanel />
-          </div>
-        )}
-
-        {/* Center - Chat */}
-        <div className="flex flex-col flex-1 min-w-0">
-          <ChatArea />
-          <CommandInput />
         </div>
 
-        {/* Right panel - Users */}
-        {showRightPanel && (
-          <div className={`${isMobile ? "absolute inset-y-0 right-0 z-20 w-[200px] shadow-xl" : "w-[180px] shrink-0"}`}>
-            <UserPanel />
+        {/* Main content */}
+        <div className="flex flex-1 min-h-0 relative">
+          {/* Left panel - Channels */}
+          {showLeftPanel && (
+            <div className={`${isMobile ? "absolute inset-y-0 left-0 z-20 w-[240px] shadow-xl" : "w-[220px] shrink-0"}`}>
+              <ChannelPanel />
+            </div>
+          )}
+
+          {/* Center - Chat */}
+          <div className="flex flex-col flex-1 min-w-0">
+            <ChatArea />
+            <CommandInput />
           </div>
+
+          {/* Right panel - Users */}
+          {showRightPanel && (
+            <div className={`${isMobile ? "absolute inset-y-0 right-0 z-20 w-[200px] shadow-xl" : "w-[180px] shrink-0"}`}>
+              <UserPanel />
+            </div>
+          )}
+        </div>
+
+        {/* Mobile overlay backdrop */}
+        {isMobile && (showLeftPanel || showRightPanel) && (
+          <div
+            className="fixed inset-0 bg-black/40 z-10"
+            onClick={() => { setShowLeftPanel(false); setShowRightPanel(false); }}
+          />
         )}
       </div>
-
-      {/* Mobile overlay backdrop */}
-      {isMobile && (showLeftPanel || showRightPanel) && (
-        <div
-          className="fixed inset-0 bg-black/40 z-10"
-          onClick={() => { setShowLeftPanel(false); setShowRightPanel(false); }}
-        />
-      )}
     </div>
   );
 }
