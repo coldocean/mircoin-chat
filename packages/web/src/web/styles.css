@@ -1,0 +1,155 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: 'Inter', sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+:root {
+  --radius: 0.375rem;
+  --background: #ffffff;
+  --foreground: #1f2328;
+  --card: #f6f8fa;
+  --card-foreground: #1f2328;
+  --primary: #0969da;
+  --primary-foreground: #ffffff;
+  --secondary: #eaeef2;
+  --secondary-foreground: #1f2328;
+  --muted: #f6f8fa;
+  --muted-foreground: #656d76;
+  --accent: #ddf4ff;
+  --accent-foreground: #0969da;
+  --destructive: #cf222e;
+  --border: #d0d7de;
+  --input: #d0d7de;
+  --ring: #0969da;
+}
+
+.dark {
+  --background: #0a0e14;
+  --foreground: #c9d1d9;
+  --card: #111720;
+  --card-foreground: #c9d1d9;
+  --primary: #58a6ff;
+  --primary-foreground: #0a0e14;
+  --secondary: #161b22;
+  --secondary-foreground: #c9d1d9;
+  --muted: #161b22;
+  --muted-foreground: #484f58;
+  --accent: #1a2233;
+  --accent-foreground: #58a6ff;
+  --destructive: #f85149;
+  --border: #1a2233;
+  --input: #1a2233;
+  --ring: #58a6ff;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+  body {
+    @apply bg-background text-foreground font-mono;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+  #root {
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #505050;
+}
+
+/* IRC nick colors */
+.nick-0 { color: #ff6b6b; }
+.nick-1 { color: #4ecdc4; }
+.nick-2 { color: #45b7d1; }
+.nick-3 { color: #96ceb4; }
+.nick-4 { color: #ffeaa7; }
+.nick-5 { color: #dfe6e9; }
+.nick-6 { color: #fd79a8; }
+.nick-7 { color: #a29bfe; }
+.nick-8 { color: #55efc4; }
+.nick-9 { color: #fab1a0; }
+.nick-10 { color: #74b9ff; }
+.nick-11 { color: #e17055; }
+.nick-owner { color: #ffd700; font-weight: 600; }
+.nick-superadmin { color: #ff4757; font-weight: 600; }
+.nick-self { color: #ffd700; }
+
+/* Message types */
+.msg-action { color: #bc8cff; font-style: italic; }
+.msg-join { color: #3fb950; }
+.msg-part { color: #da3633; }
+.msg-quit { color: #da3633; }
+.msg-kick { color: #f0883e; }
+.msg-server { color: #58a6ff; }
+.msg-error { color: #f85149; }
+.msg-notice { color: #d29922; }
+.msg-topic { color: #8b949e; }
+.msg-mode { color: #8b949e; }
+.msg-info { color: #58a6ff; }
+.msg-timestamp { color: #484f58; font-size: 11px; }
+
+.light .msg-action { color: #8250df; }
+.light .msg-join { color: #1a7f37; }
+.light .msg-part { color: #cf222e; }
+.light .msg-server { color: #0969da; }
+.light .msg-error { color: #cf222e; }
+.light .msg-notice { color: #9a6700; }
+.light .msg-timestamp { color: #656d76; }
+
+/* Panel resize handle */
+.resize-handle {
+  width: 3px;
+  cursor: col-resize;
+  transition: background 0.15s;
+}
+.resize-handle:hover {
+  background: var(--primary);
+}

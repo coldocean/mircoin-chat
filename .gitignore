@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+.env.github
+.env.local
+*.db
+*.sqlite
+.turso/
+.DS_Store
